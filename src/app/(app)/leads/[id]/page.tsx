@@ -220,7 +220,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
           </section>
         </div>
 
-        <div className="space-y-4">
+        <div className="order-first space-y-4 lg:order-none">
           <section className="card p-4">
             {!readOnly ? (
               <ActionBar
