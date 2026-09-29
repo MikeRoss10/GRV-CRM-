@@ -1,12 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireWorkspace } from "@/lib/workspace";
+import { can, requireWorkspace } from "@/lib/workspace";
+
+async function adminCtx() {
+  const c = await requireWorkspace();
+  if (!can.seeBusiness(c.role) || !can.work(c.role)) throw new Error("Only admins can import or test sources.");
+  return c;
+}
 import { normalizePhone, parseLeadMessage, toIngestPayload, type SourceType } from "@/lib/parsers";
 import { parseMoneyToMinor } from "@/lib/format";
 
 export async function saveParsedLead(text: string, sourceHint: SourceType | "") {
-  const { supabase, workspace } = await requireWorkspace();
+  const { supabase, workspace } = await adminCtx();
   const parsed = parseLeadMessage(text, { sourceHint: sourceHint || undefined });
   const { data, error } = await supabase.rpc("create_lead", { p_workspace: workspace.id, p: toIngestPayload(parsed, text, { event_type: "manual" }) });
   if (error) return { error: error.message };
@@ -18,7 +24,7 @@ export type CsvRow = Record<string, string>;
 export type CsvMapping = Record<string, string>; // canonical field -> csv column
 
 export async function importCsv(rows: CsvRow[], mapping: CsvMapping, defaultSource: SourceType) {
-  const { supabase, workspace } = await requireWorkspace();
+  const { supabase, workspace } = await adminCtx();
   if (rows.length > 2000) return { error: "Import up to 2,000 rows at a time" };
   const get = (r: CsvRow, k: string) => (mapping[k] ? (r[mapping[k]] ?? "").trim() : "");
   const counts = { created: 0, duplicates: 0, skipped: 0, errors: [] as string[] };

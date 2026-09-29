@@ -7,7 +7,7 @@ import { resolveRange } from "@/lib/dates";
 import { getEconomics } from "@/lib/economics";
 import { money, minutes, num, pct } from "@/lib/format";
 import { DECISION_LABEL, change, type SourceMetrics } from "@/lib/metrics";
-import { requireWorkspace } from "@/lib/workspace";
+import { requireBusinessAccess } from "@/lib/workspace";
 
 export const metadata = { title: "Overview" };
 
@@ -21,7 +21,7 @@ function greeting(tz: string) {
 export default async function OverviewPage({ searchParams }: { searchParams: Promise<{ range?: string; welcome?: string }> }) {
   const sp = await searchParams;
   const range = resolveRange(sp.range);
-  const { supabase, workspace, member } = await requireWorkspace();
+  const { supabase, workspace, member } = await requireBusinessAccess();
   const cur = workspace.default_currency;
   const now = Date.now();
 

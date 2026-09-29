@@ -8,12 +8,12 @@ import { resolveRange } from "@/lib/dates";
 import { getEconomics } from "@/lib/economics";
 import { ago, dateOnly, humanize, maskPhone, minutes, money, pct } from "@/lib/format";
 import { DECISION_LABEL } from "@/lib/metrics";
-import { requireWorkspace } from "@/lib/workspace";
+import { requireBusinessAccess } from "@/lib/workspace";
 
 export default async function SourceDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ range?: string }> }) {
   const { id } = await params;
   const range = resolveRange((await searchParams).range, "90d");
-  const { supabase, workspace } = await requireWorkspace();
+  const { supabase, workspace } = await requireBusinessAccess();
   const cur = workspace.default_currency;
   const { rows } = await getEconomics(range.from.toISOString(), range.to.toISOString());
   const r = rows.find((x) => x.source_account_id === id);

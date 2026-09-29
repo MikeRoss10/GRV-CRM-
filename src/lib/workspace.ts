@@ -87,4 +87,20 @@ export const can = {
   manage: (r: Role) => r === "owner" || r === "manager",
   own: (r: Role) => r === "owner",
   seeRaw: (r: Role) => r !== "analyst",
+  /** Spend, economics, reports, connections and settings. Workers (reps) only see customers and leads. */
+  seeBusiness: (r: Role) => r !== "rep",
 };
+
+export const ROLE_LABEL: Record<Role, string> = {
+  owner: "Owner (admin)",
+  manager: "Manager (admin)",
+  rep: "Worker",
+  analyst: "Analyst",
+};
+
+/** For admin-area pages: workers are sent back to their lead queue. */
+export async function requireBusinessAccess() {
+  const c = await requireWorkspace();
+  if (!can.seeBusiness(c.role)) redirect("/leads?view=mine");
+  return c;
+}

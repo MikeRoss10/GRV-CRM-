@@ -96,7 +96,7 @@ export default async function FollowUpPage({ searchParams }: { searchParams: Pro
 }
 
 async function AiQueue() {
-  const { supabase, workspace } = await requireWorkspace();
+  const { supabase, workspace, role } = await requireWorkspace();
   const [{ data: policy }, { data: leads }] = await Promise.all([
     supabase.from("call_policies").select("*").eq("workspace_id", workspace.id).maybeSingle(),
     supabase.from("opportunities")
@@ -130,7 +130,11 @@ async function AiQueue() {
                   </li>
                 ))}
               </ul>
-              <Link href="/settings#ai" className="btn-secondary mt-4">Open AI call settings</Link>
+              {can.seeBusiness(role) ? (
+                <Link href="/settings#ai" className="btn-secondary mt-4">Open AI call settings</Link>
+              ) : (
+                <p className="mt-4 text-sm text-muted">Ask an admin to complete AI call setup.</p>
+              )}
             </div>
           </div>
         </section>

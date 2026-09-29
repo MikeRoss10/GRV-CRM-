@@ -8,7 +8,7 @@ import { RANGES, resolveRange } from "@/lib/dates";
 import { getEconomics } from "@/lib/economics";
 import { minutes, money, pct } from "@/lib/format";
 import { DECISION_LABEL } from "@/lib/metrics";
-import { requireWorkspace } from "@/lib/workspace";
+import { requireBusinessAccess } from "@/lib/workspace";
 import { weeklyCount, weeklySpend } from "@/lib/weekly";
 
 export const metadata = { title: "Source Economics" };
@@ -22,7 +22,7 @@ export default async function EconomicsPage({ searchParams }: { searchParams: Pr
   const range = resolveRange(sp.range, "90d");
   const attribution = sp.attribution === "last" ? "last" : "first";
   const includeResponse = sp.response !== "off";
-  const { supabase, workspace } = await requireWorkspace();
+  const { supabase, workspace } = await requireBusinessAccess();
   const cur = workspace.default_currency;
 
   const [{ rows, totals: t }, costs, wins, leads] = await Promise.all([

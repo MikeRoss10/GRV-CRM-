@@ -21,6 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { kind } = await params;
   const sp = request.nextUrl.searchParams;
   const { supabase, workspace, role, user } = await requireWorkspace();
+  if (!can.seeBusiness(role)) return NextResponse.json({ error: "Exports are available to admins only." }, { status: 403 });
   const stamp = new Date().toISOString().slice(0, 10);
   const slug = workspace.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   let body = "";

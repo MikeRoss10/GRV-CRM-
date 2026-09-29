@@ -29,13 +29,14 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
   const contact = opp.contacts as unknown as Contact;
 
   const now = Date.now();
+  const business = can.seeBusiness(role);
   const [msgs, calls, tasks, audits, consents, costs, raws, templates, policyRow, dupOf, dupChildren, econ, otherOpps] = await Promise.all([
     supabase.from("messages").select("*").eq("opportunity_id", id).order("sent_at"),
     supabase.from("calls").select("*").eq("opportunity_id", id).order("started_at"),
     supabase.from("tasks").select("*").eq("opportunity_id", id).order("due_at"),
     supabase.from("audit_events").select("*").eq("workspace_id", workspace.id).eq("entity_id", id).order("created_at"),
     supabase.from("consent_events").select("*").eq("opportunity_id", id),
-    supabase.from("cost_events").select("*").eq("opportunity_id", id),
+    business ? supabase.from("cost_events").select("*").eq("opportunity_id", id) : Promise.resolve({ data: [] as Array<{ amount_minor: number; occurred_at: string; cost_type: string; notes: string | null }> }),
     can.seeRaw(role) ? supabase.from("raw_events").select("id, event_type, payload, parse_status, parser_version, received_at, provider_occurred_at").eq("opportunity_id", id) : Promise.resolve({ data: null }),
     supabase.from("message_templates").select("*").eq("workspace_id", workspace.id).eq("approved", true).order("name"),
     supabase.from("call_policies").select("*").eq("workspace_id", workspace.id).maybeSingle(),
@@ -119,7 +120,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
             <StatusBadge status={opp.status} />
             {primary && <SourceBadge type={primary.source_accounts.source_type} name={primary.source_accounts.display_name} />}
             <span>· received {ago(opp.received_at)} ago</span>
-            <span>· {estCost === null ? <span className="text-amber-700">source cost unknown</span> : <>{money(estCost, cur)} {costIsActual ? "actual" : "estimated"} source cost</>}</span>
+            {business && <span>· {estCost === null ? <span className="text-amber-700">source cost unknown</span> : <>{money(estCost, cur)} {costIsActual ? "actual" : "estimated"} source cost</>}</span>}
           </div>
         </div>
         {can.work(role) && (
@@ -204,12 +205,14 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
               <span className="text-muted">Parser confidence</span>
               <ConfidenceMeter value={opp.parser_confidence} />
             </div>
+            {business && (
             <div className="mt-2 flex items-center justify-between text-sm">
               <span className="text-muted">Source cost</span>
               <span className="tnum">
                 {estCost === null ? <span className="text-amber-700">Unknown — no cost recorded</span> : costIsActual ? `${money(estCost, cur)} (stated by source)` : `${money(estCost, cur)} (30-day CPL, allocated)`}
               </span>
             </div>
+            )}
             {raws.data?.map((r) => (
               <details key={r.id} className="mt-3 text-sm">
                 <summary className="cursor-pointer text-xs font-medium text-teal-700">View raw {r.event_type} message</summary>

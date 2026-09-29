@@ -6,7 +6,7 @@ import { Badge, PageHeader, SectionTitle, SourceBadge } from "@/components/ui";
 import { dateOnly, minutes, money, pct } from "@/lib/format";
 import { DECISION_LABEL } from "@/lib/metrics";
 import { buildReport, DEFINITIONS } from "@/lib/report";
-import { can, requireWorkspace } from "@/lib/workspace";
+import { can, requireBusinessAccess } from "@/lib/workspace";
 
 export const metadata = { title: "Reports" };
 
@@ -14,7 +14,7 @@ const TONE = { scale: "teal", optimize: "navy", test: "sky", reduce: "crit", fix
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
   const { range: rk } = await searchParams;
-  const { workspace, role } = await requireWorkspace();
+  const { workspace, role } = await requireBusinessAccess();
   const r = await buildReport(workspace, rk);
   const t = r.totals;
   const cur = workspace.default_currency;

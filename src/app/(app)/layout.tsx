@@ -5,7 +5,7 @@ import { Logo } from "@/components/logo";
 import { MobileNav, SidebarNav } from "@/components/nav";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import { Notice } from "@/components/ui";
-import { requireWorkspace } from "@/lib/workspace";
+import { can, requireWorkspace, ROLE_LABEL } from "@/lib/workspace";
 import { getEconomics } from "@/lib/economics";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -13,10 +13,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const now = new Date();
   const monthAgo = new Date(now.getTime() - 30 * 86400000);
 
+  const business = can.seeBusiness(role);
   const [unassigned, overdue, connections, econ] = await Promise.all([
     supabase.from("opportunities").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id).eq("status", "new").is("owner_user_id", null),
     supabase.from("tasks").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id).eq("status", "open").lt("due_at", now.toISOString()),
-    supabase.from("connections").select("provider, provider_account_ref, status, error_message_safe").eq("workspace_id", workspace.id).in("status", ["error", "degraded"]),
+    business
+      ? supabase.from("connections").select("provider, provider_account_ref, status, error_message_safe").eq("workspace_id", workspace.id).in("status", ["error", "degraded"])
+      : Promise.resolve({ data: [] }),
     getEconomics(monthAgo.toISOString(), now.toISOString()),
   ]);
   const counts = { leads: unassigned.count ?? 0, tasks: overdue.count ?? 0 };
@@ -31,10 +34,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <aside className="no-print sticky top-0 hidden h-dvh flex-col gap-6 bg-navy-900 px-3 py-5 lg:flex">
         <div className="px-2"><Logo light /></div>
         <WorkspaceSwitcher current={workspace.id} workspaces={workspaces} />
-        <SidebarNav counts={counts} />
+        <SidebarNav counts={counts} business={business} />
         <div className="mt-auto border-t border-white/10 px-2 pt-4">
           <div className="text-sm font-medium text-white">{member.name}</div>
-          <div className="text-xs text-white/50 capitalize">{role} · {workspace.name}</div>
+          <div className="text-xs text-white/50">{ROLE_LABEL[role]} · {workspace.name}</div>
           <form action="/auth/signout" method="post" className="mt-3">
             <button className="inline-flex items-center gap-2 text-xs text-white/60 hover:text-white">
               <LogOut className="size-3.5" aria-hidden /> Sign out
@@ -76,7 +79,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Suspense>{children}</Suspense>
         </main>
       </div>
-      <MobileNav counts={counts} />
+      <MobileNav counts={counts} business={business} />
     </div>
   );
 }

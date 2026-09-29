@@ -4,19 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import {
-  BarChart3, CalendarCheck, FileText, Inbox, LayoutDashboard, MoreHorizontal, Plug, Settings,
+  BarChart3, CalendarCheck, FileText, Inbox, LayoutDashboard, LogOut, MoreHorizontal, Plug, Settings, Users,
 } from "lucide-react";
 import { useState } from "react";
 
+// `business: true` items are admin-only; workers see customers, leads and their follow-ups.
 export const NAV = [
-  { href: "/overview", label: "Overview", icon: LayoutDashboard },
+  { href: "/overview", label: "Overview", icon: LayoutDashboard, business: true },
   { href: "/leads", label: "Leads", icon: Inbox, badge: "leads" },
-  { href: "/economics", label: "Source Economics", icon: BarChart3 },
+  { href: "/customers", label: "Customers", icon: Users },
+  { href: "/economics", label: "Source Economics", icon: BarChart3, business: true },
   { href: "/follow-up", label: "Follow-up", icon: CalendarCheck, badge: "tasks" },
-  { href: "/reports", label: "Reports", icon: FileText },
-  { href: "/connections", label: "Connections", icon: Plug },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/reports", label: "Reports", icon: FileText, business: true },
+  { href: "/connections", label: "Connections", icon: Plug, business: true },
+  { href: "/settings", label: "Settings", icon: Settings, business: true },
 ] as const;
+
+type NavItem = (typeof NAV)[number];
+const visible = (business: boolean) => NAV.filter((n) => business || !("business" in n));
 
 type Counts = { leads: number; tasks: number };
 
@@ -24,11 +29,11 @@ function isActive(path: string, href: string) {
   return path === href || path.startsWith(`${href}/`);
 }
 
-export function SidebarNav({ counts }: { counts: Counts }) {
+export function SidebarNav({ counts, business }: { counts: Counts; business: boolean }) {
   const path = usePathname();
   return (
     <nav className="flex flex-col gap-0.5" aria-label="Main">
-      {NAV.map(({ href, label, icon: Icon, ...rest }) => {
+      {visible(business).map(({ href, label, icon: Icon, ...rest }) => {
         const badge = "badge" in rest ? counts[rest.badge as keyof Counts] : 0;
         const active = isActive(path, href);
         return (
@@ -55,22 +60,28 @@ export function SidebarNav({ counts }: { counts: Counts }) {
   );
 }
 
-const MOBILE: ReadonlyArray<(typeof NAV)[number]> = [NAV[0], NAV[1], NAV[3]];
-
-export function MobileNav({ counts }: { counts: Counts }) {
+export function MobileNav({ counts, business }: { counts: Counts; business: boolean }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  const items = visible(business);
+  // Three primary tabs: admins get Overview / Leads / Follow-up, workers Leads / Customers / Follow-up.
+  const MOBILE: NavItem[] = business ? [NAV[0], NAV[1], NAV[4]] : [NAV[1], NAV[2], NAV[4]];
   const moreActive = !MOBILE.some((n) => isActive(path, n.href));
   return (
     <>
       {open && (
         <div className="fixed inset-0 z-40 bg-navy-950/40 lg:hidden" onClick={() => setOpen(false)}>
           <div className="absolute inset-x-3 bottom-20 rounded-2xl bg-white p-2 shadow-[var(--shadow-pop)]" onClick={(e) => e.stopPropagation()}>
-            {NAV.filter((n) => !MOBILE.includes(n)).map(({ href, label, icon: Icon }) => (
+            {items.filter((n) => !MOBILE.includes(n)).map(({ href, label, icon: Icon }) => (
               <Link key={href} href={href} onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-ink hover:bg-navy-50">
                 <Icon className="size-4 text-muted" aria-hidden /> {label}
               </Link>
             ))}
+            <form action="/auth/signout" method="post" className="border-t border-line pt-1">
+              <button className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-ink hover:bg-navy-50">
+                <LogOut className="size-4 text-muted" aria-hidden /> Sign out
+              </button>
+            </form>
           </div>
         </div>
       )}

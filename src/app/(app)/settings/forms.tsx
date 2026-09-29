@@ -45,7 +45,7 @@ export function InviteForm() {
       <div><label className="label" htmlFor="inv-email">Email</label><input id="inv-email" name="email" type="email" required className="input" placeholder="meera@business.com" /></div>
       <div><label className="label" htmlFor="inv-name">Name</label><input id="inv-name" name="name" className="input" /></div>
       <select name="role" defaultValue="rep" className="input !w-auto" aria-label="Role">
-        <option value="manager">Manager</option><option value="rep">Sales rep</option><option value="analyst">Analyst</option><option value="owner">Owner</option>
+        <option value="rep">Worker</option><option value="manager">Manager (admin)</option><option value="owner">Owner (admin)</option><option value="analyst">Analyst</option>
       </select>
       <button className="btn-primary" disabled={pending}>Invite</button>
       <div className="sm:col-span-4"><Msg s={s} /></div>

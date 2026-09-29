@@ -2,14 +2,14 @@ import Link from "next/link";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { Badge, EmptyState, PageHeader, SectionTitle, SourceBadge } from "@/components/ui";
 import { dateOnly, humanize, money } from "@/lib/format";
-import { can, requireWorkspace } from "@/lib/workspace";
+import { can, requireBusinessAccess } from "@/lib/workspace";
 import { deleteCostEvent } from "../actions";
 import { AddCostForm, SourceRowForm } from "./forms";
 
 export const metadata = { title: "Cost assumptions" };
 
 export default async function CostsPage() {
-  const { supabase, workspace, role } = await requireWorkspace();
+  const { supabase, workspace, role } = await requireBusinessAccess();
   const cur = workspace.default_currency;
   const editable = can.manageCosts(role);
   const [{ data: sources }, { data: costs }] = await Promise.all([

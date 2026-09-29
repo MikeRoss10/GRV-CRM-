@@ -1,21 +1,21 @@
 import Link from "next/link";
 import { Badge, PageHeader, SectionTitle } from "@/components/ui";
 import { ago, humanize, maskPhone } from "@/lib/format";
-import { can, requireWorkspace } from "@/lib/workspace";
+import { can, requireBusinessAccess, ROLE_LABEL } from "@/lib/workspace";
 import { demoData, revokeInvite, toggleTemplate, unsuppress, updateMember } from "./actions";
 import { CallPolicyForm, InviteForm, TemplateForm, WorkspaceForm } from "./forms";
 
 export const metadata = { title: "Settings" };
 
 const ROLE_HELP: Record<string, string> = {
-  owner: "Everything, including exports, tokens, AI policy and team",
-  manager: "Leads, costs, templates, duplicate merges",
-  rep: "Work leads: call, message, log outcomes",
-  analyst: "Read-only leads; manage costs; no raw messages",
+  owner: "Admin: everything, including team, exports, ingest token and AI call policy",
+  manager: "Admin: dashboards, spend and costs, reports, connections, templates, duplicate merges",
+  rep: "Worker: only customers and leads — call, message, log outcomes, follow-ups. No spend, reports or settings",
+  analyst: "Dashboards, spend and reports; read-only leads; no raw messages",
 };
 
 export default async function SettingsPage() {
-  const { supabase, workspace, role, members, user } = await requireWorkspace();
+  const { supabase, workspace, role, members, user } = await requireBusinessAccess();
   const isOwner = can.own(role);
   const [{ data: invites }, { data: templates }, { data: policy }, { data: suppressed }, { data: audits }, { count: demoCount }] = await Promise.all([
     isOwner ? supabase.from("workspace_invites").select("*").eq("workspace_id", workspace.id).is("accepted_at", null) : Promise.resolve({ data: [] }),
@@ -29,7 +29,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Settings" description={`You are ${role === "owner" ? "an owner" : `a ${role}`} in ${workspace.name}.`} actions={<Link href="/onboarding?new=1" className="btn-secondary">New workspace</Link>} />
+      <PageHeader title="Settings" description={`You are signed in as ${ROLE_LABEL[role]} in ${workspace.name}.`} actions={<Link href="/onboarding?new=1" className="btn-secondary">New workspace</Link>} />
 
       <section className="card p-4 sm:p-5">
         <SectionTitle>Workspace</SectionTitle>
@@ -51,13 +51,13 @@ export default async function SettingsPage() {
                 {isOwner && m.user_id !== user.id ? (
                   <>
                     <select name="role" defaultValue={m.role} className="input !w-auto !py-1" aria-label={`Role for ${m.name}`}>
-                      {Object.keys(ROLE_HELP).map((r) => <option key={r} value={r}>{humanize(r)}</option>)}
+                      {(Object.keys(ROLE_LABEL) as Array<keyof typeof ROLE_LABEL>).map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
                     </select>
                     <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" name="active" defaultChecked={m.active} className="size-4 accent-teal-600" />Active</label>
                     <button className="btn-secondary !py-1 text-xs">Save</button>
                   </>
                 ) : (
-                  <Badge tone="navy">{humanize(m.role)}</Badge>
+                  <Badge tone="navy">{ROLE_LABEL[m.role]}</Badge>
                 )}
               </form>
             </li>
@@ -65,14 +65,14 @@ export default async function SettingsPage() {
           {(invites ?? []).map((i) => (
             <li key={i.id} className="flex items-center gap-3 py-2.5 text-sm">
               <div className="flex-1"><div className="font-medium">{i.name ?? i.email}</div><div className="text-xs text-muted">{i.email} · invited {ago(i.created_at)} ago</div></div>
-              <Badge tone="amber">Pending · {humanize(i.role)}</Badge>
+              <Badge tone="amber">Pending · {ROLE_LABEL[i.role as keyof typeof ROLE_LABEL]}</Badge>
               <form action={revokeInvite}><input type="hidden" name="id" value={i.id} /><button className="btn-ghost !py-1 text-xs">Revoke</button></form>
             </li>
           ))}
         </ul>
         {isOwner && <div className="mt-4 rounded-xl bg-stone-50 p-3"><InviteForm /></div>}
         <dl className="mt-3 grid gap-1 text-xs text-muted sm:grid-cols-2">
-          {Object.entries(ROLE_HELP).map(([r, h]) => <div key={r}><dt className="inline font-medium text-ink">{humanize(r)}: </dt><dd className="inline">{h}</dd></div>)}
+          {Object.entries(ROLE_HELP).map(([r, h]) => <div key={r}><dt className="inline font-medium text-ink">{ROLE_LABEL[r as keyof typeof ROLE_LABEL]}: </dt><dd className="inline">{h}</dd></div>)}
         </dl>
       </section>
 

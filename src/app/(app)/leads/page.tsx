@@ -17,6 +17,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   const view = sp.view ?? "all";
   const { supabase, workspace, user, role, members } = await requireWorkspace();
   const now = Date.now();
+  const business = can.seeBusiness(role);
   const sla = workspace.default_sla_minutes;
   const cur = workspace.default_currency;
 
@@ -57,7 +58,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   const { data: leads, count, error } = await q;
   const ids = (leads ?? []).map((l) => l.id);
   const [{ data: costs }, { data: tasks }] = await Promise.all([
-    ids.length ? supabase.from("cost_events").select("opportunity_id, amount_minor").in("opportunity_id", ids) : Promise.resolve({ data: [] }),
+    ids.length && business ? supabase.from("cost_events").select("opportunity_id, amount_minor").in("opportunity_id", ids) : Promise.resolve({ data: [] }),
     ids.length ? supabase.from("tasks").select("opportunity_id, title, due_at").in("opportunity_id", ids).eq("status", "open").order("due_at") : Promise.resolve({ data: [] }),
   ]);
   const directCost = new Map<string, number>();
@@ -81,7 +82,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           can.work(role) && (
             <>
               <Link href="/leads/duplicates" className="btn-secondary"><Copy className="size-4" aria-hidden />Duplicates</Link>
-              <Link href="/connections#import" className="btn-secondary"><Upload className="size-4" aria-hidden />Import</Link>
+              {business && <Link href="/connections#import" className="btn-secondary"><Upload className="size-4" aria-hidden />Import</Link>}
               <Link href="/leads/new" className="btn-primary"><Plus className="size-4" aria-hidden />Add lead</Link>
             </>
           )
@@ -159,9 +160,11 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                   </div>
                   <div className="order-3 col-span-2 flex items-center gap-2 text-xs md:order-none md:col-span-1 md:block">
                     {src ? <SourceBadge type={src.source_type} name={src.display_name} /> : <span className="text-faint">No source</span>}
-                    <div className="text-muted tnum md:mt-0.5">
-                      {est === null ? <span className="text-amber-700">cost unknown</span> : <>{money(est, cur)} {direct === undefined && "est."}</>}
-                    </div>
+                    {business && (
+                      <div className="text-muted tnum md:mt-0.5">
+                        {est === null ? <span className="text-amber-700">cost unknown</span> : <>{money(est, cur)} {direct === undefined && "est."}</>}
+                      </div>
+                    )}
                   </div>
                   <div className="order-4 md:order-none"><StatusBadge status={l.status} /></div>
                   <div className="relative z-10 order-5 flex items-center justify-end gap-2 text-xs md:order-none md:justify-start">

@@ -3,14 +3,14 @@ import { headers } from "next/headers";
 import { Mail, MessageSquareText, Phone, RefreshCw, Webhook, BarChart3 } from "lucide-react";
 import { Badge, PageHeader, SectionTitle } from "@/components/ui";
 import { ago } from "@/lib/format";
-import { can, requireWorkspace } from "@/lib/workspace";
+import { can, requireBusinessAccess } from "@/lib/workspace";
 import { rotateToken } from "./actions";
 import { CodeBlock, CopyField, CsvImport, ParserTester } from "./client";
 
 export const metadata = { title: "Connections" };
 
 export default async function ConnectionsPage() {
-  const { supabase, workspace, role } = await requireWorkspace();
+  const { supabase, workspace, role } = await requireBusinessAccess();
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
   const endpoint = `${origin}/api/ingest`;
